@@ -142,4 +142,47 @@ pub struct TrackEntry {
 	indicator: Option<Indicator>,
 	status: Status,
 	location: geo::Location,
+	max_sustained_wind: i32,
+	min_pressure: i32,
+	wind_radii_34kts: WindRadii,
+	wind_radii_50kts: WindRadii,
+	wind_radii_64kts: WindRadii,
+}
+
+#[derive(Debug)]
+pub struct WindRadii {
+	ne: i32,
+	se: i32,
+	sw: i32,
+	nw: i32,
+}
+
+impl WindRadii {
+	fn from_strs(ne: &str, se: &str, sw: &str, nw: &str) -> Result<WindRadii, Box<dyn Error>> {
+		let ne = ne
+			.parse::<i32>()
+			.map_err(|_| format!("invalid ne: {}", ne))?;
+		let se = se
+			.parse::<i32>()
+			.map_err(|_| format!("invalid se: {}", se))?;
+		let sw = sw
+			.parse::<i32>()
+			.map_err(|_| format!("invalid sw: {}", sw))?;
+		let nw = nw
+			.parse::<i32>()
+			.map_err(|_| format!("invalid nw: {}", nw))?;
+		Ok(WindRadii { ne, se, sw, nw })
+	}
+
+	pub fn max_radius(&self) -> Option<geo::Distance> {
+		let r = std::cmp::max(
+			std::cmp::max(self.se, self.ne),
+			std::cmp::max(self.sw, self.nw),
+		);
+		if r == -999 {
+			None
+		} else {
+			Some(geo::Distance::from_nautical_miles(r as f64))
+		}
+	}
 }
