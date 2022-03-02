@@ -1,0 +1,13 @@
+[package]
+name = "cat5"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = "0.4"
+clap = {version = "3.1", features = ["derive"]}
+regex = "1.5"
+
+[[bin]]
+name = "cat5d"
+path  = "src/cat5d/main.rs"
