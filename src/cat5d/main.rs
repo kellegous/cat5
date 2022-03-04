@@ -1,12 +1,7 @@
 use cat5::hurdat2::{Status, Storm, StormIter};
 use cat5::{noaa, DataDir};
 use clap::Parser;
-use sha2::{Digest, Sha256};
 use std::error::Error;
-use std::fs;
-use std::io;
-use std::io::BufWriter;
-use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
 struct Args {
