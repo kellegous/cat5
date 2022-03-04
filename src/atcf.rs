@@ -44,6 +44,7 @@ impl std::fmt::Display for Basin {
 	}
 }
 
+#[derive(Debug)]
 pub struct Id {
 	basin: Basin,
 	number: i32,

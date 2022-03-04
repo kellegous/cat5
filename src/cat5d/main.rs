@@ -1,3 +1,4 @@
+use cat5::hurdat2::StormIter;
 use cat5::{noaa, DataDir};
 use clap::Parser;
 use sha2::{Digest, Sha256};
@@ -18,31 +19,23 @@ struct Args {
     hurdat2_url: String,
 }
 
-fn ensure_download_to<P: AsRef<Path>>(dst: P, url: &str) -> Result<(), Box<dyn Error>> {
-    let mut req = reqwest::blocking::get(url)?;
-    let mut h = Sha256::new();
-    let mut r = tee::TeeReader::new(&mut req, &mut h);
-    let mut w = BufWriter::new(fs::File::create(dst)?);
-    io::copy(&mut r, &mut w)?;
-    let dig = hex::encode(h.finalize().as_slice());
-    println!("{}", dig);
-    Ok(())
-}
-
-fn compute_hash<P: AsRef<Path>>(src: P) -> Result<(), Box<dyn Error>> {
-    let mut h = Sha256::new();
-    let mut f = fs::File::open(src)?;
-    io::copy(&mut f, &mut h)?;
-
-    println!("{:?}", h.finalize().as_slice());
-    Ok(())
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let data_dir = DataDir::at(&args.data_dir)?;
-    data_dir.download("hurdat2.csv", &args.hurdat2_url)?;
+    let mut r = csv::ReaderBuilder::new()
+        .flexible(true)
+        .has_headers(false)
+        .from_reader(data_dir.download("hurdat2.csv", &args.hurdat2_url)?);
+    for storm in StormIter::new(r.records()) {
+        let storm = storm?;
+        println!(
+            "{} / {} / {}",
+            storm.id(),
+            storm.name().unwrap_or("??"),
+            storm.track().len()
+        );
+    }
     // let data_dir = Path::new(&args.data_dir);
     // if !data_dir.exists() {
     //     fs::create_dir_all(&data_dir)?;

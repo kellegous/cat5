@@ -12,6 +12,18 @@ pub struct Storm {
 }
 
 impl Storm {
+	pub fn id(&self) -> &atcf::Id {
+		&self.id
+	}
+
+	pub fn name(&self) -> Option<&str> {
+		self.name.as_deref()
+	}
+
+	pub fn track(&self) -> &[TrackEntry] {
+		&self.track
+	}
+
 	fn next_from_iterator<R>(
 		rec: csv::Result<csv::StringRecord>,
 		iter: &mut csv::StringRecordsIter<R>,
@@ -303,6 +315,7 @@ impl WindRadii {
 	}
 }
 
+#[derive(Debug)]
 struct Header {
 	id: atcf::Id,
 	name: Option<String>,
@@ -317,7 +330,7 @@ impl Header {
 				"UNNAMED" => None,
 				v => Some(v.to_owned()),
 			};
-			let num_track_entries = rec.get(2).unwrap().parse::<usize>()?;
+			let num_track_entries = rec.get(2).unwrap().trim().parse::<usize>()?;
 			Ok(Header {
 				id,
 				name,
@@ -331,6 +344,12 @@ impl Header {
 
 pub struct StormIter<'a, R: 'a> {
 	iter: csv::StringRecordsIter<'a, R>,
+}
+
+impl<'a, R: io::Read> StormIter<'a, R> {
+	pub fn new(iter: csv::StringRecordsIter<'a, R>) -> Self {
+		StormIter { iter }
+	}
 }
 
 impl<'a, R: io::Read> Iterator for StormIter<'a, R> {
@@ -349,8 +368,8 @@ fn parse_location(lat: &str, lng: &str) -> Result<geo::Location, Box<dyn Error>>
 		_ => {
 			let v = &lat[0..lat.len() - 1].parse::<f64>()?;
 			match lat.chars().last().unwrap() {
-				'E' | 'e' => *v,
-				'W' | 'w' => -v,
+				'N' | 'n' => *v,
+				'S' | 's' => -v,
 				_ => return Err(format!("invalid lat: {}", lat).into()),
 			}
 		}
@@ -360,8 +379,8 @@ fn parse_location(lat: &str, lng: &str) -> Result<geo::Location, Box<dyn Error>>
 		_ => {
 			let v = &lng[0..lng.len() - 1].parse::<f64>()?;
 			match lng.chars().last().unwrap() {
-				'N' | 'n' => *v,
-				'S' | 's' => -v,
+				'E' | 'e' => *v,
+				'W' | 'w' => -v,
 				_ => return Err(format!("invalid lng: {}", lng).into()),
 			}
 		}
