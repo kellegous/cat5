@@ -132,7 +132,7 @@ impl FromStr for Indicator {
 	}
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Status {
 	TropicalDepression,
 	TropicalStorm,

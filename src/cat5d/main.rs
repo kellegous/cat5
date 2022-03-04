@@ -1,4 +1,4 @@
-use cat5::hurdat2::StormIter;
+use cat5::hurdat2::{Status, Storm, StormIter};
 use cat5::{noaa, DataDir};
 use clap::Parser;
 use sha2::{Digest, Sha256};
@@ -19,6 +19,13 @@ struct Args {
     hurdat2_url: String,
 }
 
+fn is_hurricane(storm: &Storm) -> bool {
+    storm
+        .track()
+        .iter()
+        .any(|e| e.status() == Status::Hurricane)
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
@@ -27,7 +34,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         .flexible(true)
         .has_headers(false)
         .from_reader(data_dir.download("hurdat2.csv", &args.hurdat2_url)?);
-    for storm in StormIter::new(r.records()) {
+    let hurricanes = StormIter::new(r.records()).filter(|r| match r {
+        Ok(s) => is_hurricane(s),
+        _ => true,
+    });
+    for storm in hurricanes {
         let storm = storm?;
         println!(
             "{} / {} / {}",
@@ -36,6 +47,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             storm.track().len()
         );
     }
+    // for storm in StormIter::new(r.records()) {
+    //     let storm = storm?;
+    //     println!(
+    //         "{} / {} / {}",
+    //         storm.id(),
+    //         storm.name().unwrap_or("??"),
+    //         storm.track().len()
+    //     );
+    // }
     // let data_dir = Path::new(&args.data_dir);
     // if !data_dir.exists() {
     //     fs::create_dir_all(&data_dir)?;
