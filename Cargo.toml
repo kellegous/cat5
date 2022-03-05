@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bit-vec = "0.6"
 chrono = "0.4"
 clap = {version = "3.1", features = ["derive"]}
 csv = "1.1"
@@ -13,7 +14,9 @@ reqwest = { version = "0.11", features = ["blocking"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
-tee = "0.1"
+resvg = "0.15"
+tiny-skia = "0.5.1"
+usvg = "0.15.0"
 
 [[bin]]
 name = "cat5d"

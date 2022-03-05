@@ -1,6 +1,7 @@
 pub mod atcf;
 pub mod geo;
 pub mod hurdat2;
+pub mod map;
 pub mod noaa;
 
 use reqwest::blocking::Client;
@@ -10,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::error::Error;
 use std::fs;
+use std::io;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -26,7 +28,7 @@ impl DataDir {
 		Ok(DataDir { path: path.into() })
 	}
 
-	pub fn download(&self, name: &str, url: &str) -> Result<fs::File, Box<dyn Error>> {
+	pub fn download_and_open(&self, name: &str, url: &str) -> Result<fs::File, Box<dyn Error>> {
 		let req = Client::new().get(url);
 		let path = self.path.join(name);
 		let res = if let Some(md) = Metadata::from_link(&path).ok() {
@@ -64,6 +66,14 @@ impl DataDir {
 			StatusCode::NOT_MODIFIED => Ok(fs::File::open(&path)?),
 			s => Err(format!("status: {}", s).into()),
 		}
+	}
+
+	pub fn open(&self, name: &str) -> io::Result<fs::File> {
+		fs::File::open(self.path.join(name))
+	}
+
+	pub fn create(&self, name: &str) -> io::Result<fs::File> {
+		fs::File::create(self.path.join(name))
 	}
 }
 

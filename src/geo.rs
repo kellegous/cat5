@@ -234,3 +234,59 @@ fn to_dms(v: f64) -> (i32, i32, i32) {
 
 	(d, m, s)
 }
+
+#[derive(Debug)]
+pub struct Mercator {
+	width: f64,
+	height: f64,
+	xoff: f64,
+	yoff: f64,
+}
+
+impl Mercator {
+	pub fn new(width: f64, height: f64, xoff: f64, yoff: f64) -> Mercator {
+		Mercator {
+			width,
+			height,
+			xoff,
+			yoff,
+		}
+	}
+
+	pub fn width(&self) -> f64 {
+		self.width
+	}
+
+	pub fn height(&self) -> f64 {
+		self.height
+	}
+
+	pub fn xoff(&self) -> f64 {
+		self.xoff
+	}
+
+	pub fn yoff(&self) -> f64 {
+		self.yoff
+	}
+
+	pub fn location_to_pt(&self, loc: &Location) -> (f64, f64) {
+		let lat = loc.lat();
+		let lng = loc.lng();
+		let lat_rads = lat * (PI / 180.0);
+		let merc_n = (PI / 4.0 + lat_rads / 2.0).tan().ln();
+		(
+			self.width / 2.0 + lng * self.width / 360.0 + self.xoff,
+			self.height / 2.0 - (self.height * merc_n) / (2.0 * PI) + self.yoff,
+		)
+	}
+
+	pub fn pt_to_location(&self, pt: (f64, f64)) -> Location {
+		let (x, y) = pt;
+		let a = (-2.0 * PI * (y - self.height / 2.0 - self.yoff)) / self.height;
+		let lat_deg = 2.0 * a.exp().atan() - PI / 2.0;
+		Location::new(
+			lat_deg * (180.0 / PI),
+			(360.0 / self.width) * (x - self.xoff - self.width / 2.0),
+		)
+	}
+}
