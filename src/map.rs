@@ -7,6 +7,7 @@ use tiny_skia::{ColorU8, Pixmap};
 pub struct Map {
 	w: usize,
 	h: usize,
+	bin_size: f64,
 }
 
 impl Map {
@@ -17,8 +18,12 @@ impl Map {
 	) -> Result<Map, Box<dyn Error>> {
 		let src = pixmap_from_svg(&src)?;
 
-		let mut img = BitImage::from_pixmap(&src, bin_size, land_color);
-		Ok(Map { w: 0, h: 0 })
+		let img = BitImage::from_pixmap(&src, bin_size, land_color);
+		Ok(Map {
+			w: img.width(),
+			h: img.height(),
+			bin_size,
+		})
 	}
 }
 

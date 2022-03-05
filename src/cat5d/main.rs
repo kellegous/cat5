@@ -7,23 +7,11 @@ use std::str::FromStr;
 use tiny_skia::ColorU8;
 
 #[derive(Debug)]
-struct ParseHexColorError {
-    desc: String,
-}
-
-impl ParseHexColorError {
-    fn from_string(desc: String) -> ParseHexColorError {
-        ParseHexColorError { desc }
-    }
-
-    fn from_str(desc: &str) -> ParseHexColorError {
-        Self::from_string(String::from(desc))
-    }
-}
+struct ParseHexColorError;
 
 impl fmt::Display for ParseHexColorError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.desc)
+        write!(f, "invalid hex color")
     }
 }
 
@@ -37,16 +25,11 @@ impl FromStr for HexColor {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if !s.starts_with("#") || s.len() != 7 {
-            return Err(ParseHexColorError::from_str(
-                "color must begin with # and have 6 hex digits",
-            ));
+            return Err(ParseHexColorError {});
         };
-        let r = u8::from_str_radix(&s[1..3], 16)
-            .map_err(|_| ParseHexColorError::from_str("invalid red"))?;
-        let g = u8::from_str_radix(&s[3..5], 16)
-            .map_err(|_| ParseHexColorError::from_str("invalid green"))?;
-        let b = u8::from_str_radix(&s[5..7], 16)
-            .map_err(|_| ParseHexColorError::from_str("invalid blue"))?;
+        let r = u8::from_str_radix(&s[1..3], 16).map_err(|_| ParseHexColorError {})?;
+        let g = u8::from_str_radix(&s[3..5], 16).map_err(|_| ParseHexColorError {})?;
+        let b = u8::from_str_radix(&s[5..7], 16).map_err(|_| ParseHexColorError {})?;
         Ok(HexColor(ColorU8::from_rgba(r, g, b, 0xff)))
     }
 }

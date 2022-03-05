@@ -10,6 +10,7 @@ use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::error::Error;
+use std::fmt;
 use std::fs;
 use std::io;
 use std::io::Write;
