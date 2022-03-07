@@ -1,5 +1,5 @@
 use cat5::hurdat2::{Status, Storm, StormIter};
-use cat5::{map, noaa, DataDir};
+use cat5::{debug, map, noaa, DataDir};
 use clap::{Args, Parser};
 use std::error::Error;
 use std::fmt;
@@ -80,7 +80,7 @@ struct MapFlags {
 
     #[clap(
         long = "map-land-color",
-        default_value_t = HexColor::from_rgb(0xcb, 0xc0, 0xff),
+        default_value_t = HexColor::from_rgb(0xfa, 0xcb, 0xc0),
         help = "hex color of land in map SVG"
     )]
     land_color: HexColor,
@@ -110,7 +110,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("hurricanes: {}", hurricanes.len());
 
     let m = map::Map::build(&flags.map.svg_file, 10.0, &flags.map.land_color.color())?;
-    println!("{:?}", m);
+    debug::render_map(data_dir.join("map.pdf"), &m)?;
 
     // for storm in StormIter::new(r.records()) {
     //     let storm = storm?;

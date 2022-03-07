@@ -1,4 +1,5 @@
 pub mod atcf;
+pub mod debug;
 pub mod geo;
 pub mod hurdat2;
 pub mod map;
@@ -10,7 +11,6 @@ use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::error::Error;
-use std::fmt;
 use std::fs;
 use std::io;
 use std::io::Write;
@@ -75,6 +75,10 @@ impl DataDir {
 
 	pub fn create(&self, name: &str) -> io::Result<fs::File> {
 		fs::File::create(self.path.join(name))
+	}
+
+	pub fn join(&self, name: &str) -> PathBuf {
+		self.path.join(name)
 	}
 }
 
