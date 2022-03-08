@@ -1,9 +1,12 @@
+use actix_web::{middleware, rt, web, App, HttpRequest, HttpResponse, HttpServer, Result};
 use cat5::hurdat2::{Status, Storm, StormIter};
 use cat5::{debug, map, noaa, DataDir};
 use clap::{Args, Parser};
 use std::error::Error;
 use std::fmt;
+use std::io;
 use std::str::FromStr;
+use std::thread;
 use tiny_skia::ColorU8;
 
 #[derive(Debug)]
@@ -93,6 +96,17 @@ fn was_hurricane(storm: &Storm) -> bool {
         .any(|e| e.status() == Status::Hurricane)
 }
 
+async fn app_main() -> io::Result<()> {
+    HttpServer::new(|| {
+        App::new()
+            .wrap(middleware::Logger::default())
+            .route("/", web::get().to(HttpResponse::Ok))
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let flags = Flags::parse();
 
@@ -112,26 +126,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let m = map::Map::build(&flags.map.svg_file, 10.0, &flags.map.land_color.color())?;
     debug::render_map(data_dir.join("map.pdf"), &m)?;
 
-    // for storm in StormIter::new(r.records()) {
-    //     let storm = storm?;
-    //     println!(
-    //         "{} / {} / {}",
-    //         storm.id(),
-    //         storm.name().unwrap_or("??"),
-    //         storm.track().len()
-    //     );
-    // }
-    // let data_dir = Path::new(&args.data_dir);
-    // if !data_dir.exists() {
-    //     fs::create_dir_all(&data_dir)?;
-    // }
-
-    // let hurdat2_data_file = data_dir.join("hurdat2.csv");
-    // ensure_download_to(&hurdat2_data_file, &args.hurdat2_url)?;
-    // // /compute_hash(&hurdat2_data_file)?;
-
-    // println!("data_dir = {}", data_dir.display());
     println!("hurdat2_url = {}", &flags.hurdat2_url);
+
+    std::env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
+    env_logger::init();
+
+    let server_thread = thread::spawn(move || rt::System::new().block_on(app_main()));
+    if let Err(e) = server_thread.join() {
+        return Err("could not wait on server".into());
+    }
 
     Ok(())
 }
