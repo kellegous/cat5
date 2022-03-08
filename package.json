@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "watch-dev": "webpack --watch --mode=development --env development",
-    "build-dev": "webpack --mode=development --env development --progress",
+    "build-dev": "webpack --mode=development --env development",
     "watch-prd": "webpack --watch --mode=production --env production",
-    "build-prd": "webpack --mode=production --env production --progress"
+    "build-prd": "webpack --mode=production --env production"
   },
   "repository": {
     "type": "git",
