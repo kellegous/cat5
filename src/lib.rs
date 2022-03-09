@@ -16,6 +16,7 @@ use std::io;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+#[derive(Debug, Clone)]
 pub struct DataDir {
 	path: PathBuf,
 }
