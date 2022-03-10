@@ -1,29 +1,12 @@
 mod cli;
 
-use actix_files::NamedFile;
-use actix_web::{
-    middleware, rt, web, App, Error as WebError, HttpRequest, HttpResponse, HttpServer, Result,
-};
+use actix_web::{rt, web};
 use cat5::hurdat2::{Status, Storm, StormIter};
 use cat5::{debug, map, DataDir};
 use clap::Parser;
 use std::error::Error;
-use std::io;
-use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::thread;
-
-#[derive(Debug, Clone)]
-struct Context {
-    data_dir: DataDir,
-    dist_dir: PathBuf,
-}
-
-impl Context {
-    fn new(data_dir: DataDir, dist_dir: PathBuf) -> Context {
-        Context { data_dir, dist_dir }
-    }
-}
 
 fn was_hurricane(storm: &Storm) -> bool {
     storm
@@ -32,29 +15,11 @@ fn was_hurricane(storm: &Storm) -> bool {
         .any(|e| e.status() == Status::Hurricane)
 }
 
-async fn index(data: web::Data<Context>, req: HttpRequest) -> Result<HttpResponse, WebError> {
-    Ok(NamedFile::open("package.json")?
-        .disable_content_disposition()
-        .into_response(&req))
-}
-
-async fn app_main(addr: &str, data: web::Data<Context>) -> io::Result<()> {
-    HttpServer::new(move || {
-        App::new()
-            .app_data(data.clone())
-            .wrap(middleware::Logger::default())
-            .service(web::resource("/").route(web::get().to(index)))
-            .service(web::resource("/.*").route(web::get().to(index)))
-    })
-    .bind(addr)?
-    .run()
-    .await
-}
-
 fn start_watcher() -> Result<(), Box<dyn Error>> {
     let mut child = Command::new("npm").args(["run", "watch-dev"]).spawn()?;
 
-    ctrlc::set_handler(move || child.kill().expect("unable to kill child"))?;
+    // terminate the child on signals
+    ctrlc::set_handler(move || child.kill().expect("unable to kill watcher subprocess"))?;
 
     Ok(())
 }
@@ -89,9 +54,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         start_watcher()?;
     }
 
-    let data = web::Data::new(Context::new(data_dir, flags.dist_dir().to_owned()));
+    let data = web::Data::new(cat5::web::Context::new(
+        data_dir,
+        flags.dist_dir().to_owned(),
+    ));
     if let Err(_) = thread::spawn(move || {
-        rt::System::new().block_on(app_main(flags.for_web().bind_addr(), data))
+        rt::System::new().block_on(cat5::web::run_app(flags.for_web().bind_addr(), data))
     })
     .join()
     {

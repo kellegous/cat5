@@ -4,6 +4,7 @@ pub mod geo;
 pub mod hurdat2;
 pub mod map;
 pub mod noaa;
+pub mod web;
 
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED};
