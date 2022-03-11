@@ -1,12 +1,15 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
+use handlebars::Handlebars;
+use std::collections::HashMap;
 use std::error::Error;
+use std::fs;
 use std::path::Path;
 use std::process::Command;
 use walkdir::{DirEntry, WalkDir};
 
 fn get_build_sha() -> Result<String, Box<dyn Error>> {
 	let output = Command::new("git").args(["rev-parse", "HEAD"]).output()?;
-	Ok(String::from_utf8(output.stdout)?)
+	Ok(String::from_utf8(output.stdout)?.trim().to_owned())
 }
 
 fn needs_update<P: AsRef<Path>>(dst: P, src: P) -> Result<bool, Box<dyn Error>> {
@@ -17,6 +20,10 @@ fn needs_update<P: AsRef<Path>>(dst: P, src: P) -> Result<bool, Box<dyn Error>> 
 
 	let src = src.as_ref();
 	let dst = dst.as_ref();
+
+	if !dst.exists() {
+		return Ok(true);
+	}
 
 	let src_latest = if src.is_dir() {
 		let src_times = WalkDir::new(&src)
@@ -57,6 +64,18 @@ fn build_js() -> Result<(), Box<dyn Error>> {
 	}
 }
 
+fn build_html<P: AsRef<Path>>(
+	dst: P,
+	src: P,
+	vars: &HashMap<String, String>,
+) -> Result<(), Box<dyn Error>> {
+	let mut hbs = Handlebars::new();
+	hbs.set_strict_mode(true);
+	hbs.register_template_file("index", src)?;
+	hbs.render_to_write("index", vars, fs::File::create(&dst)?)?;
+	Ok(())
+}
+
 fn maybe_build<P: AsRef<Path>, F>(dst: P, src: P, f: F) -> Result<(), Box<dyn Error>>
 where
 	F: FnOnce() -> Result<(), Box<dyn Error>>,
@@ -70,8 +89,15 @@ where
 
 fn main() -> Result<(), Box<dyn Error>> {
 	let build_sha = get_build_sha()?;
-	println!("build_sha = {}", build_sha);
+
+	let mut varz = HashMap::new();
+	varz.insert("sha".to_owned(), build_sha.clone());
+
 	maybe_build("dist/index.js", "ui", build_js)?;
+	maybe_build("dist/index.html", "ui/index.hbs", || {
+		build_html("dist/index.html", "ui/index.hbs", &varz)
+	})?;
+
 	println!("cargo:rustc-env=BUILD_SHA={}", build_sha);
 	Ok(())
 }
