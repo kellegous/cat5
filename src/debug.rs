@@ -58,8 +58,8 @@ pub fn render_map<P: AsRef<Path>>(dst: P, m: &map::Map) -> Result<(), Box<dyn Er
 	Ok(())
 }
 
-pub mod storms {
-	use super::{geo, hurdat2};
+pub mod export {
+	use super::{geo, hurdat2, map};
 	use serde::ser::{self, SerializeMap, SerializeSeq};
 	use std::error::Error;
 	use std::io;
@@ -158,12 +158,91 @@ pub mod storms {
 		}
 	}
 
-	pub fn export_to_writer<W: io::Write>(
-		w: W,
-		storms: &[hurdat2::Storm],
-	) -> Result<(), Box<dyn Error>> {
+	struct Map<'a> {
+		m: &'a map::Map,
+	}
+
+	impl<'a> Map<'a> {
+		fn new(m: &map::Map) -> Map {
+			Map { m }
+		}
+	}
+
+	impl<'a> ser::Serialize for Map<'a> {
+		fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+		where
+			S: ser::Serializer,
+		{
+			let mut s = s.serialize_map(Some(5))?;
+			s.serialize_entry("width", &self.m.width())?;
+			s.serialize_entry("height", &self.m.height())?;
+			s.serialize_entry("bin_size", &self.m.bin_size())?;
+			let bins = self
+				.m
+				.bins()
+				.iter()
+				.map(|b| Bin::new(b))
+				.collect::<Vec<_>>();
+			s.serialize_entry("bins", &bins)?;
+			s.serialize_entry("mercator", &Mercator::new(self.m.mercator()))?;
+			s.end()
+		}
+	}
+
+	struct Bin<'a> {
+		bin: &'a map::Bin,
+	}
+
+	impl<'a> Bin<'a> {
+		fn new(bin: &map::Bin) -> Bin {
+			Bin { bin }
+		}
+	}
+
+	impl<'a> ser::Serialize for Bin<'a> {
+		fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+		where
+			S: ser::Serializer,
+		{
+			let mut s = s.serialize_seq(Some(2))?;
+			s.serialize_element(&self.bin.i)?;
+			s.serialize_element(&self.bin.j)?;
+			s.end()
+		}
+	}
+
+	struct Mercator<'a> {
+		m: &'a geo::Mercator,
+	}
+
+	impl<'a> Mercator<'a> {
+		fn new(m: &geo::Mercator) -> Mercator {
+			Mercator { m }
+		}
+	}
+
+	impl<'a> ser::Serialize for Mercator<'a> {
+		fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+		where
+			S: ser::Serializer,
+		{
+			let mut s = s.serialize_map(Some(4))?;
+			s.serialize_entry("width", &self.m.width())?;
+			s.serialize_entry("height", &self.m.height())?;
+			s.serialize_entry("xoff", &self.m.xoff())?;
+			s.serialize_entry("yoff", &self.m.yoff())?;
+			s.end()
+		}
+	}
+
+	pub fn storms<W: io::Write>(w: W, storms: &[hurdat2::Storm]) -> Result<(), Box<dyn Error>> {
 		let storms = storms.iter().map(|s| Storm::new(s)).collect::<Vec<_>>();
 		serde_json::to_writer(w, &storms)?;
+		Ok(())
+	}
+
+	pub fn map<W: io::Write>(w: W, m: &map::Map) -> Result<(), Box<dyn Error>> {
+		serde_json::to_writer(w, &Map::new(m))?;
 		Ok(())
 	}
 }

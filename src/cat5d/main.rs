@@ -2,9 +2,10 @@ mod cli;
 
 use actix_web::{rt, web};
 use cat5::hurdat2::{Status, Storm, StormIter};
-use cat5::{debug, map, DataDir};
+use cat5::{debug, geo, map, DataDir};
 use clap::Parser;
 use std::error::Error;
+use std::io::BufWriter;
 use std::process::Command;
 use std::thread;
 
@@ -44,10 +45,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         flags.for_map().svg_file(),
         10.0,
         flags.for_map().land_color(),
+        geo::Mercator::new(
+            10368.61626248217,
+            10310.9627199,
+            -2160.1283880171186,
+            -3566.7693291,
+        ),
     )?;
-    debug::render_map(data_dir.join("map.pdf"), &m)?;
 
-    debug::storms::export_to_writer(data_dir.create("storms.json")?, &hurricanes)?;
+    debug::render_map(data_dir.join("map.pdf"), &m)?;
+    debug::export::storms(BufWriter::new(data_dir.create("storms.json")?), &hurricanes)?;
+    debug::export::map(BufWriter::new(data_dir.create("map.json")?), &m)?;
 
     std::env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     env_logger::init();

@@ -1,3 +1,4 @@
+use super::geo;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -9,6 +10,7 @@ pub struct Map {
 	h: usize,
 	bin_size: f64,
 	bins: Vec<Bin>,
+	mercator: geo::Mercator,
 }
 
 impl Map {
@@ -16,6 +18,7 @@ impl Map {
 		src: P,
 		bin_size: f64,
 		land_color: &ColorU8,
+		mercator: geo::Mercator,
 	) -> Result<Map, Box<dyn Error>> {
 		let src = pixmap_from_svg(&src)?;
 
@@ -40,6 +43,7 @@ impl Map {
 			h: img.height(),
 			bin_size,
 			bins,
+			mercator,
 		})
 	}
 
@@ -57,6 +61,10 @@ impl Map {
 
 	pub fn height(&self) -> usize {
 		self.h
+	}
+
+	pub fn mercator(&self) -> &geo::Mercator {
+		&self.mercator
 	}
 }
 
