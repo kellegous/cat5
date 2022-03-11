@@ -35,7 +35,6 @@ async fn index(
 	req: HttpRequest,
 ) -> Result<HttpResponse, actix_web::Error> {
 	let path = data.asset_for(&req);
-	println!("path = {}", path.display());
 	Ok(NamedFile::open(path)?
 		.disable_content_disposition()
 		.into_response(&req))
