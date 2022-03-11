@@ -93,6 +93,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let mut varz = HashMap::new();
 	varz.insert("sha".to_owned(), build_sha.clone());
 
+	// TODO(knorton): need to make sure npm install is run.
 	maybe_build("dist/index.js", "ui", build_js)?;
 	maybe_build("dist/index.html", "ui/index.hbs", || {
 		build_html("dist/index.html", "ui/index.hbs", &varz)
