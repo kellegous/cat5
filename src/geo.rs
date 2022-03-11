@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 const R: f64 = 6371e3;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Location {
 	lat: f64,
 	lng: f64,

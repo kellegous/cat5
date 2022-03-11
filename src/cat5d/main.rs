@@ -47,6 +47,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     debug::render_map(data_dir.join("map.pdf"), &m)?;
 
+    debug::storms::export_to_writer(data_dir.create("storms.json")?, &hurricanes)?;
+
     std::env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     env_logger::init();
 
