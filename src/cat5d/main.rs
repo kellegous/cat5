@@ -29,10 +29,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let flags = cli::Flags::parse();
 
     let data_dir = DataDir::at(flags.data_dir())?;
+
     let mut r = csv::ReaderBuilder::new()
         .flexible(true)
         .has_headers(false)
         .from_reader(data_dir.download_and_open("hurdat2.csv", flags.hurdat2_url())?);
+
     let hurricanes = StormIter::new(r.records())
         .filter(|r| match r {
             Ok(s) => was_hurricane(s),
