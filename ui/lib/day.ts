@@ -9,7 +9,7 @@ export class Day {
 
 	get index(): number {
 		const t1 = Date.UTC(2000, this.month, this.date),
-			t0 = Date.UTC(2000, 1, 1);
+			t0 = Date.UTC(2000, 0, 1);
 		return ((t1 - t0) / DAY_IN_MILLIS) | 0;
 	}
 
@@ -21,7 +21,7 @@ export class Day {
 	}
 
 	static fromIndex(index: number): Day {
-		const t = new Date(Date.UTC(2000, 1, 1) + index * DAY_IN_MILLIS);
+		const t = new Date(Date.UTC(2000, 0, 1) + index * DAY_IN_MILLIS);
 		return new this(
 			t.getUTCMonth(),
 			t.getUTCDate()

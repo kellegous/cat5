@@ -1,4 +1,6 @@
-import Day from './lib/day';
+import { Day } from './lib/day';
+import Iter from './lib/iter';
+import { range } from './lib/range';
 
 namespace app {
 	namespace raw {
@@ -63,11 +65,36 @@ namespace app {
 		};
 	}
 
+	function groupStormsByDay(
+		storms: Iter<Storm>
+	): { day: Day, storms: Storm[] }[] {
+		const days = Iter.of(range.toExclusive(366)).map(i => ({
+			day: Day.fromIndex(i),
+			storms: [],
+		})).collect();
+
+		for (const storm of storms) {
+			const { track } = storm,
+				n = track.length;
+			if (n == 0) {
+				continue;
+			}
+			const a = Day.fromDate(track[0].time).index,
+				b = Day.fromDate(track[n - 1].time).index;
+			for (let i = a; i <= b; i++) {
+				days[i].storms.push(storm);
+			}
+		}
+		return days;
+	}
+
 	async function main() {
-		const data = await fetch('/data/storms.json')
+		const storms = await fetch('/data/storms.json')
 			.then(res => res.json())
-			.then((storms: raw.Storm[]) => storms.map(toStorm));
-		console.log(data);
+			.then((storms: raw.Storm[]) => Iter.of(storms).map(toStorm));
+		console.log(
+			groupStormsByDay(storms)
+		);
 	}
 
 	main();
