@@ -72,6 +72,13 @@ export default class Iter<T> implements Iterable<T> {
 		return Array.from(this.iter);
 	}
 
+	max(d: T | null): T | null {
+		return this.reduce(
+			(max, v) => v > max ? v : max,
+			d
+		);
+	}
+
 	static of<T>(iter: Iterable<T>): Iter<T> {
 		return new Iter(iter);
 	}
