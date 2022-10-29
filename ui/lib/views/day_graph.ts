@@ -4,6 +4,7 @@ import { Day } from '../day';
 import { range } from '../range';
 import Iter from '../iter';
 import { Box } from '../box';
+import { Scale } from '../scale';
 
 const MONTHS = [
 	'Jan',
@@ -47,10 +48,11 @@ function renderTo(
 	rect: Box,
 ) {
 	const graphRect = Box.fromTRBL(rect.y + 30, rect.width, rect.height, rect.x + 30),
+		scale = Scale.for(0, Iter.of(days).map(({ storms }) => storms.length).max(0)),
 		dx = graphRect.width / days.length,
-		dy = graphRect.height / Iter.of(days).map(({ storms }) => storms.length).max(0);
+		dy = graphRect.height / scale.max;
 
-	{
+	{ // months
 		const view = Box.fromTRBL(rect.y, graphRect.r, rect.height, graphRect.l);
 		for (const month of getMonths()) {
 			const index = month.index,
@@ -79,17 +81,46 @@ function renderTo(
 		}
 	}
 
-	for (const [i, day] of days.entries()) {
-		const x = dx * i,
-			y = dy * day.storms.length;
-		svg.of('rect')
-			.withAttrs({
-				x: graphRect.l + x + 1,
-				y: graphRect.t + graphRect.height - y,
-				width: dx - 2,
-				height: y,
-				fill: '#09f',
-			}).appendTo(el);
+	{ // y-axis
+		const view = Box.fromTRBL(rect.y, graphRect.r, rect.height, graphRect.l);
+		for (const div of scale.divs) {
+			const y = view.t + view.height - dy * div;
+			svg.of('line')
+				.withAttrs({
+					x1: view.l,
+					y1: y,
+					x2: view.r,
+					y2: y,
+					stroke: '#999',
+					'stroke-dasharray': '1, 3',
+				}).appendTo(el);
+
+			svg.of('text')
+				.withText(`${div.toLocaleString()}`)
+				.withAttrs({
+					x: view.l + 5,
+					y: y - 5,
+					'font-family': 'Lato',
+					'font-size': '10px',
+					fill: '#999',
+				}).appendTo(el);
+		}
+	}
+
+	{ // bar graph
+		const padding = 0.5;
+		for (const [i, day] of days.entries()) {
+			const x = dx * i,
+				y = dy * day.storms.length;
+			svg.of('rect')
+				.withAttrs({
+					x: graphRect.l + x + padding,
+					y: graphRect.t + graphRect.height - y,
+					width: dx - padding * 2,
+					height: y,
+					fill: '#09f',
+				}).appendTo(el);
+		}
 	}
 }
 
