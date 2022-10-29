@@ -79,6 +79,10 @@ export default class Iter<T> implements Iterable<T> {
 		);
 	}
 
+	enumerate(): Iter<[number, T]> {
+		return new Iter(withIndex(this.iter));
+	}
+
 	static of<T>(iter: Iterable<T>): Iter<T> {
 		return new Iter(iter);
 	}
