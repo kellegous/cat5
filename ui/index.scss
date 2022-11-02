@@ -8,15 +8,7 @@ body {
 	width: 1200px;
 	margin: 50px auto;
 
-	>.day {
-		display: flex;
-
-		&.max {
-			font-weight: bold;
-		}
-
-		>.count {
-			margin-left: 20px;
-		}
+	>.day-graph {
+		margin-bottom: 50px;
 	}
 }

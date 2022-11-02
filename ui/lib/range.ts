@@ -46,6 +46,21 @@ export namespace range {
 			const { a, b, step } = this;
 			return this.fn(a, b, step);
 		}
+
+		toInclusive(b: number): Iter {
+			const { a, step } = this;
+			return new Iter(a, b, step, rangeIn);
+		}
+
+		toExclusive(b: number): Iter {
+			const { a, step } = this;
+			return new Iter(a, b, step, rangeEx);
+		}
+
+		from(a: number): Iter {
+			const { b, step, fn } = this;
+			return new Iter(a, b, step, fn);
+		}
 	}
 
 	export function from(a: number): Iter {
