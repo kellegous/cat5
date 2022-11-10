@@ -3,8 +3,14 @@ import './index.scss';
 import { DOY, MOY } from './lib/time';
 import { Model } from './lib/model';
 
+import { CanvasDayGraph } from './lib/views/canvas_day_graph';
 import { DayGraph } from './lib/views/day_graph';
 import { Header } from './lib/views/header';
+
+const HURRICANE_SEASON: [DOY, DOY] = [
+	DOY.fromMD(MOY.June, 1),
+	DOY.fromMD(MOY.November, 30),
+];
 
 // namespace app {
 // 	namespace raw {
@@ -270,4 +276,10 @@ DayGraph(root, model, {
 	height: 300,
 	startDay: DOY.fromMD(MOY.June, 1),
 	endDay: DOY.fromMD(MOY.November, 30),
+});
+
+Header(root, "Storms by Day of Year");
+CanvasDayGraph(root, model, {
+	season: HURRICANE_SEASON,
+	height: 300,
 });
