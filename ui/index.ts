@@ -5,6 +5,7 @@ import { Model } from './lib/model';
 
 import { CanvasDayGraph } from './lib/views/canvas_day_graph';
 import { DayGraph } from './lib/views/day_graph';
+import { DayGraph as DayGraph2 } from './lib/views/day_graph2';
 import { Header } from './lib/views/header';
 
 const HURRICANE_SEASON: [DOY, DOY] = [
@@ -266,6 +267,17 @@ const HURRICANE_SEASON: [DOY, DOY] = [
 const model = new Model().load(),
 	root = document.querySelector('#app') as HTMLElement;
 
+Header(root, "Storms by Day of Year");
+CanvasDayGraph(root, model, {
+	season: HURRICANE_SEASON,
+	height: 300,
+});
+
+Header(root, "Storms by Day of Year");
+DayGraph2(root, model, {
+	season: HURRICANE_SEASON,
+});
+
 Header(root, 'Storms by Day of Year');
 DayGraph(root, model, {
 	height: 300,
@@ -278,8 +290,3 @@ DayGraph(root, model, {
 	endDay: DOY.fromMD(MOY.November, 30),
 });
 
-Header(root, "Storms by Day of Year");
-CanvasDayGraph(root, model, {
-	season: HURRICANE_SEASON,
-	height: 300,
-});

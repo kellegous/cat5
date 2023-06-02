@@ -27,7 +27,7 @@ function renderTo(
 		dxa = graphRect.width / days.length,
 		dxb = graphRect.width / (sb.index - sa.index + 1),
 		dx = lerp(dxa, dxb, zoom),
-		offset = lerp(0, -dx * sa.index, zoom),
+		offset = lerp(0, -dxb * sa.index, zoom),
 		dy = graphRect.height / scale.max;
 
 	ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
@@ -176,16 +176,6 @@ function* getMonthsIn(start: MOY, end: MOY): Generator<MOY> {
 	}
 }
 
-function getTargetTransform(
-	width: number,
-	data: Data,
-): [number, number] {
-	const { days, season } = data,
-		[a, b] = season,
-		n = b.index - a.index + 1;
-	return [-a.index * width / n, data.days.length / n];
-}
-
 export interface CanvasDayGraphOptions {
 	season: [DOY, DOY];
 	height?: number;
@@ -221,7 +211,7 @@ class View {
 					this.render();
 				},
 				500,
-				easing.inOutQuart,
+				easing.inOutSine,
 				() => this.zoom,
 			)
 		);
