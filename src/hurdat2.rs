@@ -14,6 +14,18 @@ pub struct Storm {
 }
 
 impl Storm {
+    pub fn track(&self) -> &[TrackEntry] {
+        &self.track
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    pub fn id(&self) -> &atcf::Id {
+        &self.id
+    }
+
     pub fn from_record_iter<R>(
         iter: &mut csv::StringRecordsIter<R>,
     ) -> Option<Result<Storm, Box<dyn Error>>>
@@ -49,19 +61,6 @@ impl Storm {
             track: track_entries,
         })
     }
-}
-
-#[derive(Debug)]
-pub struct TrackEntry {
-    time: DateTime<Utc>,
-    indicator: Option<Indicator>,
-    status: Status,
-    location: geo::Location,
-    max_sustained_wind: i32,
-    min_pressure: i32,
-    wind_radii_34kts: WindRadii,
-    wind_radii_50kts: WindRadii,
-    wind_radii_64kts: WindRadii,
 }
 
 fn parse_location(lat: &str, lng: &str) -> Result<geo::Location, Box<dyn Error>> {
@@ -101,8 +100,56 @@ fn parse_wind_radii(
         record.get(offset + 3).ok_or("missing nw")?.trim(),
     )
 }
+#[derive(Debug)]
+pub struct TrackEntry {
+    time: DateTime<Utc>,
+    indicator: Option<Indicator>,
+    status: Status,
+    location: geo::Location,
+    max_sustained_wind: i32,
+    min_pressure: i32,
+    wind_radii_34kts: WindRadii,
+    wind_radii_50kts: WindRadii,
+    wind_radii_64kts: WindRadii,
+}
 
 impl TrackEntry {
+    pub fn time(&self) -> DateTime<Utc> {
+        self.time
+    }
+
+    pub fn indicator(&self) -> Option<Indicator> {
+        self.indicator
+    }
+
+    pub fn status(&self) -> Status {
+        self.status
+    }
+
+    pub fn location(&self) -> &geo::Location {
+        &self.location
+    }
+
+    pub fn wind_radii_34kts(&self) -> &WindRadii {
+        &self.wind_radii_34kts
+    }
+
+    pub fn wind_radii_50kts(&self) -> &WindRadii {
+        &self.wind_radii_50kts
+    }
+
+    pub fn wind_radii_64kts(&self) -> &WindRadii {
+        &self.wind_radii_64kts
+    }
+
+    pub fn max_sustained_wind(&self) -> i32 {
+        self.max_sustained_wind
+    }
+
+    pub fn min_pressure(&self) -> i32 {
+        self.min_pressure
+    }
+
     fn from_record(record: &csv::StringRecord) -> Result<TrackEntry, Box<dyn Error>> {
         let d = NaiveDate::parse_from_str(record.get(0).ok_or("missing date")?, "%Y%m%d")?;
         let t = NaiveTime::parse_from_str(record.get(1).ok_or("missing time")?, "%H%M")?;

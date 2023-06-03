@@ -1,4 +1,7 @@
-use cat5::{hurdat2, noaa, DataDir};
+use cat5::{
+    hurdat2::{self, Status, Storm},
+    noaa, DataDir,
+};
 use clap::Parser;
 use std::{error::Error, path::Path};
 
@@ -21,6 +24,24 @@ impl Flags {
     }
 }
 
+fn collect_storms<R, F>(
+    iter: &mut csv::StringRecordsIter<R>,
+    mut f: F,
+) -> Result<Vec<Storm>, Box<dyn Error>>
+where
+    R: std::io::Read,
+    F: Fn(&hurdat2::Storm) -> bool,
+{
+    let mut storms = Vec::new();
+    while let Some(storm) = hurdat2::Storm::from_record_iter(iter) {
+        let storm = storm?;
+        if f(&storm) {
+            storms.push(storm);
+        }
+    }
+    Ok(storms)
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let flags = Flags::parse();
 
@@ -30,10 +51,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         .flexible(true)
         .has_headers(false)
         .from_reader(data_dir.download_and_open("hurdat2.csv", flags.hurdat2_url())?);
+    let hurricanes = collect_storms(&mut r.records(), |s| {
+        s.track().iter().any(|e| e.status() == Status::Hurricane)
+    })?;
 
-    while let Some(storm) = hurdat2::Storm::from_record_iter(&mut r.records()) {
-        println!("{:?}", storm?);
-    }
+    println!("{} hurricanes", hurricanes.len());
 
     Ok(())
 }
