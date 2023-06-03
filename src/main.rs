@@ -26,7 +26,7 @@ impl Flags {
 
 fn collect_storms<R, F>(
     iter: &mut csv::StringRecordsIter<R>,
-    mut f: F,
+    f: F,
 ) -> Result<Vec<Storm>, Box<dyn Error>>
 where
     R: std::io::Read,
@@ -55,7 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         s.track().iter().any(|e| e.status() == Status::Hurricane)
     })?;
 
-    println!("{} hurricanes", hurricanes.len());
+    println!("hurricanes: {}", hurricanes.len());
 
     Ok(())
 }
