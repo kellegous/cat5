@@ -1,9 +1,12 @@
+use std::error::Error;
+use std::io;
+use std::str::FromStr;
+
 use super::{atcf, geo};
 use chrono::prelude::*;
 use chrono::{DateTime, NaiveDate, Utc};
-use std::error::Error;
-use std::str::FromStr;
 
+#[derive(Debug)]
 pub struct Storm {
     id: atcf::Id,
     name: Option<String>,
@@ -11,10 +14,23 @@ pub struct Storm {
 }
 
 impl Storm {
-    pub fn from_record_iter(
-        iter: &mut csv::StringRecordsIter<impl std::io::Read>,
-    ) -> Result<Storm, Box<dyn Error>> {
-        let header = Header::from_record(&iter.next().ok_or("missing storm header")??)?;
+    pub fn from_record_iter<R>(
+        iter: &mut csv::StringRecordsIter<R>,
+    ) -> Option<Result<Storm, Box<dyn Error>>>
+    where
+        R: io::Read,
+    {
+        iter.next().map(|r| Storm::from_record(r, iter))
+    }
+
+    fn from_record<R>(
+        record: csv::Result<csv::StringRecord>,
+        iter: &mut csv::StringRecordsIter<R>,
+    ) -> Result<Storm, Box<dyn Error>>
+    where
+        R: io::Read,
+    {
+        let header = Header::from_record(&record?)?;
         let track_entries = iter
             .take(header.num_track_entries)
             .map(|r| TrackEntry::from_record(&r?))
@@ -35,6 +51,7 @@ impl Storm {
     }
 }
 
+#[derive(Debug)]
 pub struct TrackEntry {
     time: DateTime<Utc>,
     indicator: Option<Indicator>,
@@ -97,7 +114,7 @@ impl TrackEntry {
                 "" => None,
                 s => Some(Indicator::from_str(s)?),
             },
-            status: record.get(3).ok_or("missing status")?.parse()?,
+            status: record.get(3).ok_or("missing status")?.trim().parse()?,
             location: parse_location(
                 record.get(4).ok_or("missing latitude")?.trim(),
                 record.get(5).ok_or("missing longitude")?.trim(),

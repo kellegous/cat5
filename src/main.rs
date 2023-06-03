@@ -1,4 +1,4 @@
-use cat5::{noaa, DataDir};
+use cat5::{hurdat2, noaa, DataDir};
 use clap::Parser;
 use std::{error::Error, path::Path};
 
@@ -30,8 +30,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .flexible(true)
         .has_headers(false)
         .from_reader(data_dir.download_and_open("hurdat2.csv", flags.hurdat2_url())?);
-    for record in r.records() {
-        println!("{:?}", record?);
+
+    while let Some(storm) = hurdat2::Storm::from_record_iter(&mut r.records()) {
+        println!("{:?}", storm?);
     }
 
     Ok(())
