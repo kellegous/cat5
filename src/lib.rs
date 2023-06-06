@@ -1,12 +1,18 @@
 pub mod atcf;
+pub mod debug;
 pub mod geo;
 pub mod hurdat2;
+pub mod map;
 pub mod noaa;
 
-use std::error::Error;
-use std::fs;
-use std::io::Write;
-use std::path::{Path, PathBuf};
+pub use crate::map::{Bin, Map};
+
+use std::{
+    error::Error,
+    fs,
+    io::{self, Write},
+    path::{Path, PathBuf},
+};
 
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED};
@@ -71,6 +77,14 @@ impl DataDir {
             StatusCode::NOT_MODIFIED => Ok(fs::File::open(&path)?),
             s => Err(format!("status: {}", s).into()),
         }
+    }
+
+    pub fn create(&self, name: &str) -> io::Result<fs::File> {
+        fs::File::create(self.path.join(name))
+    }
+
+    pub fn join(&self, name: &str) -> PathBuf {
+        self.path.join(name)
     }
 }
 

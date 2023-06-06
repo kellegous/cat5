@@ -235,7 +235,7 @@ fn to_dms(v: f64) -> (i32, i32, i32) {
     (d, m, s)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Mercator {
     width: f64,
     height: f64,
@@ -288,5 +288,32 @@ impl Mercator {
             lat_deg * (180.0 / PI),
             (360.0 / self.width) * (x - self.xoff - self.width / 2.0),
         )
+    }
+}
+
+impl std::fmt::Display for Mercator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "[{}, {}, {}, {}]",
+            self.width, self.height, self.xoff, self.yoff
+        )
+    }
+}
+
+impl std::str::FromStr for Mercator {
+    type Err = Box<dyn Error>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let vals: Vec<f64> = serde_json::from_str(s)?;
+        if vals.len() != 4 {
+            return Err(format!("invalid mercator: {}", s).into());
+        }
+        Ok(Mercator {
+            width: vals[0],
+            height: vals[1],
+            xoff: vals[2],
+            yoff: vals[3],
+        })
     }
 }

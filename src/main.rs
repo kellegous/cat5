@@ -1,8 +1,9 @@
 use cat5::{
+    debug, geo,
     hurdat2::{self, Status, Storm},
-    noaa, DataDir,
+    noaa, DataDir, Map,
 };
-use clap::Parser;
+use clap::{Args, Parser};
 use std::{error::Error, path::Path};
 
 #[derive(Parser, Debug)]
@@ -12,6 +13,9 @@ struct Flags {
 
     #[clap(long, default_value_t=noaa::hurdat2_url().to_owned(), help="NOAA URL to download hurdat2 data")]
     hurdat2_url: String,
+
+    #[clap(flatten)]
+    map: MapFlags,
 }
 
 impl Flags {
@@ -21,6 +25,92 @@ impl Flags {
 
     fn hurdat2_url(&self) -> &str {
         &self.hurdat2_url
+    }
+}
+
+#[derive(Args, Debug, Clone)]
+struct MapFlags {
+    #[clap(
+        long = "map.svg-file",
+        default_value_t=String::from("atlantic.svg"),
+        help="SVG file to use as map")]
+    svg_file: String,
+
+    #[clap(
+        long = "map.land-color",
+        default_value_t=Color::from_rgb(0xfa, 0xcb, 0xc0 ),
+        value_parser=Color::from_arg,
+        help="color of land in SVG map")]
+    land_color: Color,
+
+    #[clap(
+        long = "map.bin-size",
+        default_value_t = 10.0,
+        help = "size of map bins"
+    )]
+    bin_size: f64,
+
+    #[clap(
+        long = "map.mercator",
+        default_value_t=default_mercator(),
+        value_parser=mercator_from_arg,
+        help="mercator projection")]
+    mercator: geo::Mercator,
+}
+
+impl MapFlags {
+    fn land_color(&self) -> tiny_skia::ColorU8 {
+        self.land_color.0
+    }
+}
+
+fn default_mercator() -> geo::Mercator {
+    geo::Mercator::new(
+        10368.61626248217,
+        10310.9627199,
+        -2160.1283880171186,
+        -3566.7693291,
+    )
+}
+
+fn mercator_from_arg(s: &str) -> Result<geo::Mercator, String> {
+    s.parse::<geo::Mercator>()
+        .map_err(|_| format!("invalid mercator: {}", s))
+}
+
+#[derive(Debug, Clone)]
+struct Color(tiny_skia::ColorU8);
+
+impl Color {
+    fn from_arg(s: &str) -> Result<Color, String> {
+        s.parse::<Color>()
+            .map_err(|_| format!("invalid color: {}", s))
+    }
+
+    fn from_rgb(r: u8, g: u8, b: u8) -> Color {
+        Color(tiny_skia::ColorU8::from_rgba(r, g, b, 0xff))
+    }
+}
+impl std::str::FromStr for Color {
+    type Err = Box<dyn Error>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if !s.starts_with('#') || s.len() != 7 {
+            return Err(format!("invalid color: {}", s).into());
+        }
+        Ok(Color(tiny_skia::ColorU8::from_rgba(
+            u8::from_str_radix(&s[1..3], 16)?,
+            u8::from_str_radix(&s[3..5], 16)?,
+            u8::from_str_radix(&s[5..7], 16)?,
+            0xff,
+        )))
+    }
+}
+
+impl std::fmt::Display for Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let c = self.0;
+        write!(f, "#{:02x}{:02x}{:02x}", c.red(), c.green(), c.blue())
     }
 }
 
@@ -56,6 +146,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     })?;
 
     println!("hurricanes: {}", hurricanes.len());
+
+    let map = Map::build(
+        &flags.map.svg_file,
+        flags.map.bin_size,
+        flags.map.land_color(),
+        flags.map.mercator,
+    )?;
+
+    debug::render_map(data_dir.join("map.pdf"), &map)?;
 
     Ok(())
 }
