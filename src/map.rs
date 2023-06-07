@@ -39,15 +39,13 @@ impl Map {
         bin_size: f64,
         land_color: ColorU8,
         projection: geo::Mercator,
-        simplify: bool,
+        flood_limit: u32,
     ) -> Result<Self, Box<dyn Error>> {
         let src = pixmap_from_svg(src)?;
 
         let mut img = BitImage::from_pixmap(&src, bin_size, land_color);
 
-        if simplify {
-            simplify::with_flood_fill(&mut img, 7);
-        }
+        simplify::with_flood_fill(&mut img, flood_limit);
 
         let bins = (0..img.w)
             .flat_map(|i| (0..img.h).map(move |j| (i, j)))
