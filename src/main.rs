@@ -151,10 +151,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         &flags.map.svg_file,
         flags.map.bin_size,
         flags.map.land_color(),
-        flags.map.mercator,
+        flags.map.mercator.clone(),
+        false,
     )?;
+    debug::render_map(data_dir.join("map-a.pdf"), &map)?;
 
-    debug::render_map(data_dir.join("map.pdf"), &map)?;
+    let map = Map::build(
+        &flags.map.svg_file,
+        flags.map.bin_size,
+        flags.map.land_color(),
+        flags.map.mercator.clone(),
+        true,
+    )?;
+    debug::render_map(data_dir.join("map-b.pdf"), &map)?;
 
     Ok(())
 }
