@@ -1,7 +1,4 @@
-use std::error::Error;
-use std::f64::consts::PI;
-use std::fmt;
-use std::str::FromStr;
+use std::{error::Error, f64::consts::PI, fmt, str::FromStr};
 
 const R: f64 = 6371e3;
 

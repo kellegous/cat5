@@ -1,7 +1,8 @@
 use std::error::Error;
 
-use cat5::{update_data, DataDir};
 use clap::{Parser, Subcommand};
+
+use cat5::{update_data, DataDir};
 
 #[derive(Debug, Parser)]
 struct Args {
