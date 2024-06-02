@@ -16,6 +16,9 @@ struct Flags {
 
     #[clap(flatten)]
     map: MapFlags,
+
+    #[clap(flatten)]
+    web: WebFlags,
 }
 
 impl Flags {
@@ -62,6 +65,12 @@ impl MapFlags {
     fn land_color(&self) -> tiny_skia::ColorU8 {
         self.land_color.0
     }
+}
+
+#[derive(Args, Debug)]
+struct WebFlags {
+    #[clap(long = "web.addr", default_value_t=String::from("0.0.0.0:8080"), help="address to listen on")]
+    addr: String,
 }
 
 fn default_mercator() -> geo::Mercator {
