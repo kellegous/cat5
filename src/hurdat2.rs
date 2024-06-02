@@ -1,10 +1,12 @@
 use std::error::Error;
-use std::io;
 use std::str::FromStr;
 
 use super::{atcf, geo};
 use chrono::prelude::*;
 use chrono::{DateTime, NaiveDate, Utc};
+use csv_async::{StringRecord, StringRecordsStream};
+use tokio::io;
+use tokio_stream::StreamExt;
 
 #[derive(Debug)]
 pub struct Storm {
@@ -26,35 +28,34 @@ impl Storm {
         &self.id
     }
 
-    pub fn from_record_iter<R>(
-        iter: &mut csv::StringRecordsIter<R>,
+    pub async fn from_record_stream<'a, R>(
+        stream: &mut StringRecordsStream<'a, R>,
     ) -> Option<Result<Storm, Box<dyn Error>>>
     where
-        R: io::Read,
+        R: io::AsyncRead + Unpin + std::marker::Send,
     {
-        iter.next().map(|r| Storm::from_record(r, iter))
+        Some(
+            stream
+                .next()
+                .await
+                .map(|r| Storm::from_record(r, stream))?
+                .await,
+        )
     }
 
-    fn from_record<R>(
-        record: csv::Result<csv::StringRecord>,
-        iter: &mut csv::StringRecordsIter<R>,
+    async fn from_record<'a, R>(
+        record: Result<StringRecord, csv_async::Error>,
+        stream: &mut StringRecordsStream<'a, R>,
     ) -> Result<Storm, Box<dyn Error>>
     where
-        R: io::Read,
+        R: io::AsyncRead + Unpin + std::marker::Send,
     {
         let header = Header::from_record(&record?)?;
-        let track_entries = iter
+        let track_entries = stream
             .take(header.num_track_entries)
             .map(|r| TrackEntry::from_record(&r?))
-            .collect::<Result<Vec<_>, _>>()?;
-        if track_entries.len() != header.num_track_entries {
-            return Err(format!(
-                "expected {} track entries but got {}",
-                header.num_track_entries,
-                track_entries.len()
-            )
-            .into());
-        }
+            .collect::<Result<Vec<_>, _>>()
+            .await?;
         Ok(Storm {
             id: header.id,
             name: header.name,
@@ -89,10 +90,7 @@ fn parse_location(lat: &str, lng: &str) -> Result<geo::Location, Box<dyn Error>>
     Ok(geo::Location::new(lat, lng))
 }
 
-fn parse_wind_radii(
-    record: &csv::StringRecord,
-    offset: usize,
-) -> Result<WindRadii, Box<dyn Error>> {
+fn parse_wind_radii(record: &StringRecord, offset: usize) -> Result<WindRadii, Box<dyn Error>> {
     WindRadii::from_strs(
         record.get(offset).ok_or("missing ne")?.trim(),
         record.get(offset + 1).ok_or("missing se")?.trim(),
@@ -100,6 +98,7 @@ fn parse_wind_radii(
         record.get(offset + 3).ok_or("missing nw")?.trim(),
     )
 }
+
 #[derive(Debug)]
 pub struct TrackEntry {
     time: DateTime<Utc>,
@@ -150,7 +149,7 @@ impl TrackEntry {
         self.min_pressure
     }
 
-    fn from_record(record: &csv::StringRecord) -> Result<TrackEntry, Box<dyn Error>> {
+    fn from_record(record: &StringRecord) -> Result<TrackEntry, Box<dyn Error>> {
         let d = NaiveDate::parse_from_str(record.get(0).ok_or("missing date")?, "%Y%m%d")?;
         let t = NaiveTime::parse_from_str(record.get(1).ok_or("missing time")?, "%H%M")?;
         let time = Utc.from_utc_datetime(&NaiveDateTime::new(d, t));
@@ -359,7 +358,7 @@ struct Header {
 }
 
 impl Header {
-    fn from_record(record: &csv::StringRecord) -> Result<Header, Box<dyn Error>> {
+    fn from_record(record: &StringRecord) -> Result<Header, Box<dyn Error>> {
         if record.len() != 4 {
             return Err(format!("storm header has {} columns, not 4.", record.len()).into());
         }
