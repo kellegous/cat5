@@ -1,8 +1,8 @@
 use tiny_skia::{ColorU8, Pixmap};
-use usvg::TreeParsing;
 
 use crate::geo;
-use std::{error::Error, fs, path::Path};
+use std::{error::Error, path::Path};
+use tokio::fs;
 
 #[derive(Debug)]
 pub struct Map {
@@ -34,14 +34,14 @@ impl Map {
         &self.projection
     }
 
-    pub fn build<P: AsRef<Path>>(
+    pub async fn build<P: AsRef<Path>>(
         src: P,
         bin_size: f64,
         land_color: ColorU8,
         projection: geo::Mercator,
         flood_limit: u32,
     ) -> Result<Self, Box<dyn Error>> {
-        let src = pixmap_from_svg(src)?;
+        let src = pixmap_from_svg(src).await?;
 
         let mut img = BitImage::from_pixmap(&src, bin_size, land_color);
 
@@ -146,15 +146,14 @@ impl BitImage {
     }
 }
 
-fn pixmap_from_svg<P: AsRef<Path>>(src: P) -> Result<Pixmap, Box<dyn Error>> {
+async fn pixmap_from_svg<P: AsRef<Path>>(src: P) -> Result<Pixmap, Box<dyn Error>> {
     let opts = usvg::Options::default();
-    let data = fs::read(src)?;
+    let data = fs::read(src).await?;
     let tree = usvg::Tree::from_data(&data, &opts)?;
-    let tree = resvg::Tree::from_usvg(&tree);
-    let size = tree.size;
+    let size = tree.size();
     let mut pixels =
         Pixmap::new(size.width() as u32, size.height() as u32).ok_or("unable to create pixmap")?;
-    tree.render(tiny_skia::Transform::default(), &mut pixels.as_mut());
+    resvg::render(&tree, tiny_skia::Transform::default(), &mut pixels.as_mut());
     Ok(pixels)
 }
 

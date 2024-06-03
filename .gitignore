@@ -2,3 +2,6 @@
 /data
 /.vscode
 /node_modules
+/hurdat2.csv
+
+.DS_Store

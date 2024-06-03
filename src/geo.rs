@@ -1,5 +1,10 @@
 use std::{error::Error, f64::consts::PI, fmt, str::FromStr};
 
+use serde::{
+    de,
+    ser::{self, SerializeSeq},
+};
+
 const R: f64 = 6371e3;
 
 #[derive(Debug, Clone)]
@@ -105,6 +110,50 @@ impl FromStr for Location {
             lat: lat_v,
             lng: lng_v,
         })
+    }
+}
+
+impl ser::Serialize for Location {
+    fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        let mut seq = s.serialize_seq(Some(2))?;
+        seq.serialize_element(&self.lat)?;
+        seq.serialize_element(&self.lng)?;
+        seq.end()
+    }
+}
+
+struct LocationVisitor;
+
+impl<'de> de::Visitor<'de> for LocationVisitor {
+    type Value = Location;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "a location")
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: de::SeqAccess<'de>,
+    {
+        let lat = seq
+            .next_element()?
+            .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+        let lng = seq
+            .next_element()?
+            .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+        Ok(Location::new(lat, lng))
+    }
+}
+
+impl<'de> de::Deserialize<'de> for Location {
+    fn deserialize<D>(d: D) -> Result<Location, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        d.deserialize_seq(LocationVisitor)
     }
 }
 

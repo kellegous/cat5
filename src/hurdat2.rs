@@ -3,12 +3,14 @@ use std::{error::Error, str::FromStr};
 use chrono::prelude::*;
 use chrono::{DateTime, NaiveDate, Utc};
 use csv_async::{StringRecord, StringRecordsStream};
+use serde::{de, ser};
+use serde::{Deserialize, Serialize};
 use tokio::io;
 use tokio_stream::StreamExt;
 
 use crate::{atcf, geo};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Storm {
     id: atcf::Id,
     name: Option<String>,
@@ -99,7 +101,7 @@ fn parse_wind_radii(record: &StringRecord, offset: usize) -> Result<WindRadii, B
     )
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TrackEntry {
     time: DateTime<Utc>,
     indicator: Option<Indicator>,
@@ -265,6 +267,41 @@ impl FromStr for Indicator {
     }
 }
 
+impl ser::Serialize for Indicator {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        self.to_str().serialize(serializer)
+    }
+}
+
+struct IndicatorVisitor;
+
+impl<'de> de::Visitor<'de> for IndicatorVisitor {
+    type Value = Indicator;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(formatter, "a single character indicator")
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Indicator::from_str(v).map_err(serde::de::Error::custom)
+    }
+}
+
+impl<'de> de::Deserialize<'de> for Indicator {
+    fn deserialize<D>(d: D) -> Result<Indicator, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        d.deserialize_str(IndicatorVisitor)
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Status {
     TropicalDepression,
@@ -313,7 +350,42 @@ impl FromStr for Status {
     }
 }
 
-#[derive(Debug)]
+impl ser::Serialize for Status {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        self.to_str().serialize(serializer)
+    }
+}
+
+struct StatusVisitor;
+
+impl<'de> de::Visitor<'de> for StatusVisitor {
+    type Value = Status;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(formatter, "a status string")
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Status::from_str(v).map_err(serde::de::Error::custom)
+    }
+}
+
+impl<'de> de::Deserialize<'de> for Status {
+    fn deserialize<D>(d: D) -> Result<Status, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        d.deserialize_str(StatusVisitor)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct WindRadii {
     ne: i32,
     se: i32,

@@ -2,7 +2,7 @@ use std::error::Error;
 
 use clap::{Parser, Subcommand};
 
-use cat5::{update_data, DataDir};
+use cat5::{export_storms, update_data, DataDir};
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -16,6 +16,7 @@ struct Args {
 #[derive(Subcommand, Debug)]
 enum Command {
     UpdateData(update_data::Args),
+    ExportStorms(export_storms::Args),
 }
 
 #[tokio::main]
@@ -25,5 +26,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let data_dir = DataDir::create(&client, &args.data_dir).await?;
     match args.command {
         Command::UpdateData(opts) => update_data::run(&data_dir, opts).await,
+        Command::ExportStorms(args) => export_storms::run(&args).await,
     }
 }

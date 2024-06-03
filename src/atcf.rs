@@ -1,5 +1,6 @@
-use std::error::Error;
-use std::str::FromStr;
+use std::{error::Error, str::FromStr};
+
+use serde::{de, ser};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Basin {
@@ -70,5 +71,25 @@ impl FromStr for Id {
 impl std::fmt::Display for Id {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}{:02}{:04}", self.basin, self.number, self.year)
+    }
+}
+
+impl ser::Serialize for Id {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        let s = format!("{}", self);
+        serializer.serialize_str(&s)
+    }
+}
+
+impl<'de> de::Deserialize<'de> for Id {
+    fn deserialize<D>(d: D) -> Result<Id, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        let s = String::deserialize(d)?;
+        s.parse().map_err(de::Error::custom)
     }
 }
