@@ -108,7 +108,7 @@ pub struct TrackEntry {
     status: Status,
     location: geo::Location,
     max_sustained_wind: i32,
-    min_pressure: i32,
+    min_pressure: Option<i32>,
     wind_radii_34kts: WindRadii,
     wind_radii_50kts: WindRadii,
     wind_radii_64kts: WindRadii,
@@ -147,7 +147,7 @@ impl TrackEntry {
         self.max_sustained_wind
     }
 
-    pub fn min_pressure(&self) -> i32 {
+    pub fn min_pressure(&self) -> Option<i32> {
         self.min_pressure
     }
 
@@ -173,12 +173,11 @@ impl TrackEntry {
                 .trim()
                 .parse()
                 .map_err(|_| "invalid max sustained wind")?,
-            min_pressure: record
-                .get(7)
-                .ok_or("missing min_pressure")?
-                .trim()
-                .parse()
-                .map_err(|_| "invalid min_pressure")?,
+            min_pressure: parse_optional_int(
+                record.get(7).ok_or("missing min_pressure")?.trim(),
+                -999,
+            )
+            .map_err(|_| "invalid min_pressure")?,
             wind_radii_34kts: parse_wind_radii(record, 8)
                 .map_err(|_| "invalid wind_radii_34kts")?,
             wind_radii_50kts: parse_wind_radii(record, 12)
