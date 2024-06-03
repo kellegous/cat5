@@ -385,41 +385,43 @@ impl<'de> de::Deserialize<'de> for Status {
     }
 }
 
+fn parse_optional_int(s: &str, empty: i32) -> Result<Option<i32>, Box<dyn Error>> {
+    let v = s.parse::<i32>()?;
+    Ok(if v == empty { None } else { Some(v) })
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WindRadii {
-    ne: i32,
-    se: i32,
-    sw: i32,
-    nw: i32,
+    ne: Option<i32>,
+    se: Option<i32>,
+    sw: Option<i32>,
+    nw: Option<i32>,
 }
 
 impl WindRadii {
     fn from_strs(ne: &str, se: &str, sw: &str, nw: &str) -> Result<WindRadii, Box<dyn Error>> {
-        let ne = ne
-            .parse::<i32>()
-            .map_err(|_| format!("invalid ne: {}", ne))?;
-        let se = se
-            .parse::<i32>()
-            .map_err(|_| format!("invalid se: {}", se))?;
-        let sw = sw
-            .parse::<i32>()
-            .map_err(|_| format!("invalid sw: {}", sw))?;
-        let nw = nw
-            .parse::<i32>()
-            .map_err(|_| format!("invalid nw: {}", nw))?;
+        let ne = parse_optional_int(ne, -999).map_err(|_| format!("invalid ne: {}", ne))?;
+        let se = parse_optional_int(se, -999).map_err(|_| format!("invalid se: {}", se))?;
+        let sw = parse_optional_int(sw, -999).map_err(|_| format!("invalid sw: {}", sw))?;
+        let nw = parse_optional_int(nw, -999).map_err(|_| format!("invalid nw: {}", nw))?;
         Ok(WindRadii { ne, se, sw, nw })
     }
 
     pub fn max_radius(&self) -> Option<geo::Distance> {
-        let r = std::cmp::max(
-            std::cmp::max(self.se, self.ne),
-            std::cmp::max(self.sw, self.nw),
-        );
-        if r == -999 {
-            None
-        } else {
-            Some(geo::Distance::from_nautical_miles(r as f64))
+        let mut r = None;
+        if let Some(ne) = self.ne {
+            r = Some(r.map_or(ne, |v| std::cmp::max(v, ne)));
         }
+        if let Some(se) = self.se {
+            r = Some(r.map_or(se, |v| std::cmp::max(v, se)));
+        }
+        if let Some(sw) = self.sw {
+            r = Some(r.map_or(sw, |v| std::cmp::max(v, sw)));
+        }
+        if let Some(nw) = self.nw {
+            r = Some(r.map_or(nw, |v| std::cmp::max(v, nw)));
+        }
+        r.map(|r| geo::Distance::from_nautical_miles(r as f64))
     }
 }
 
@@ -454,5 +456,36 @@ impl Header {
             name,
             num_track_entries,
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::WindRadii;
+    #[test]
+    fn max_radius() {
+        let wr = WindRadii {
+            ne: Some(50),
+            se: Some(60),
+            sw: Some(70),
+            nw: Some(80),
+        };
+        assert_eq!(wr.max_radius().map(|r| r.in_nautical_miles()), Some(80.0));
+
+        let wr = WindRadii {
+            ne: Some(5),
+            se: None,
+            sw: None,
+            nw: None,
+        };
+        assert_eq!(wr.max_radius().map(|r| r.in_nautical_miles()), Some(5.0));
+
+        let wr = WindRadii {
+            ne: None,
+            se: None,
+            sw: None,
+            nw: None,
+        };
+        assert_eq!(wr.max_radius(), None);
     }
 }

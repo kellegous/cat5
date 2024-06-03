@@ -157,7 +157,7 @@ impl<'de> de::Deserialize<'de> for Location {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Distance {
     m: f64,
 }
